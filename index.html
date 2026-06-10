@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder - Create Your Perfect Resume</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        /* Left side - Form */
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-section h1 {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-save {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #5568d3;
+        }
+
+        .btn-download {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #38a169;
+        }
+
+        .btn-subscribe {
+            background: #f6ad55;
+            color: white;
+        }
+
+        .btn-subscribe:hover {
+            background: #ed8936;
+        }
+
+        /* Right side - Preview */
+        .preview-section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .preview-section h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .resume-preview {
+            background: #f9fafb;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        .resume-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .resume-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .resume-header p {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .resume-section {
+            margin-bottom: 25px;
+        }
+
+        .resume-section h3 {
+            font-size: 16px;
+            color: #667eea;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .resume-item {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .resume-item h4 {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .resume-item p {
+            color: #666;
+            font-size: 14px;
+            margin: 4px 0;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left side - Form -->
+        <div class="form-section">
+            <h1>Resume Builder</h1>
+            
+            <form id="resumeForm">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="phone">
+                </div>
+
+                <div class="form-group">
+                    <label>Professional Summary</label>
+                    <textarea id="summary"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Experience</label>
+                    <textarea id="experience" placeholder="Job Title - Company (Year)&#10;Achievements and responsibilities"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Education</label>
+                    <textarea id="education" placeholder="Degree - University (Year)"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Skills</label>
+                    <textarea id="skills" placeholder="Skill 1, Skill 2, Skill 3"></textarea>
+                </div>
+
+                <div id="statusMessage"></div>
+
+                <div class="button-group">
+                    <button type="button" class="btn-save" onclick="saveResume()">Save Resume</button>
+                    <button type="button" class="btn-download" onclick="downloadResume()">Download PDF</button>
+                    <button type="button" class="btn-subscribe" onclick="subscribe()">Subscribe</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right side - Preview -->
+        <div class="preview-section">
+            <h2>Preview</h2>
+            <div id="resumePreview" class="resume-preview">
+                <div class="resume-header">
+                    <h1 id="previewName">Your Name</h1>
+                    <p id="previewEmail">your@email.com</p>
+                    <p id="previewPhone"></p>
+                </div>
+
+                <div class="resume-section">
+                    <h3>Professional Summary</h3>
+                    <p id="previewSummary">Add your professional summary here</p>
+                </div>
+
+                <div class="resume-section">
+                    <h3>Experience</h3>
+                    <div id="previewExperience">
+                        <p>Add your work experience</p>
+                    </div>
+                </div>
+
+                <div class="resume-section">
+                    <h3>Education</h3>
+                    <div id="previewEducation">
+                        <p>Add your education</p>
+                    </div>
+                </div>
+
+                <div class="resume-section">
+                    <h3>Skills</h3>
+                    <p id="previewSkills">Add your skills</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api'; // Change this to your Render URL when deployed
+
+        // Load resume from backend on page load
+        window.addEventListener('load', async () => {
+            const userId = localStorage.getItem('userId') || 'user_' + Date.now();
+            localStorage.setItem('userId', userId);
+            
+            try {
+                const response = await fetch(`${API_URL}/resume/${userId}`);
+                if (response.ok) {
+                    const resume = await response.json();
+                    document.getElementById('name').value = resume.name || '';
+                    document.getElementById('email').value = resume.email || '';
+                    document.getElementById('phone').value = resume.phone || '';
+                    document.getElementById('summary').value = resume.summary || '';
+                    document.getElementById('experience').value = resume.experience || '';
+                    document.getElementById('education').value = resume.education || '';
+                    document.getElementById('skills').value = resume.skills || '';
+                    updatePreview();
+                }
+            } catch (err) {
+                console.log('No saved resume found');
+            }
+        });
+
+        // Update preview in real-time
+        document.getElementById('name').addEventListener('input', updatePreview);
+        document.getElementById('email').addEventListener('input', updatePreview);
+        document.getElementById('phone').addEventListener('input', updatePreview);
+        document.getElementById('summary').addEventListener('input', updatePreview);
+        document.getElementById('experience').addEventListener('input', updatePreview);
+        document.getElementById('education').addEventListener('input', updatePreview);
+        document.getElementById('skills').addEventListener('input', updatePreview);
+
+        function updatePreview() {
+            document.getElementById('previewName').textContent = document.getElementById('name').value || 'Your Name';
+            document.getElementById('previewEmail').textContent = document.getElementById('email').value || 'your@email.com';
+            document.getElementById('previewPhone').textContent = document.getElementById('phone').value || '';
+            document.getElementById('previewSummary').textContent = document.getElementById('summary').value || 'Add your professional summary';
+            document.getElementById('previewExperience').innerHTML = document.getElementById('experience').value ? '<p>' + document.getElementById('experience').value.replace(/\n/g, '</p><p>') + '</p>' : '<p>Add your experience</p>';
+            document.getElementById('previewEducation').innerHTML = document.getElementById('education').value ? '<p>' + document.getElementById('education').value.replace(/\n/g, '</p><p>') + '</p>' : '<p>Add your education</p>';
+            document.getElementById('previewSkills').textContent = document.getElementById('skills').value || 'Add your skills';
+        }
+
+        async function saveResume() {
+            const userId = localStorage.getItem('userId');
+            const resumeData = {
+                userId,
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                summary: document.getElementById('summary').value,
+                experience: document.getElementById('experience').value,
+                education: document.getElementById('education').value,
+                skills: document.getElementById('skills').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/resume/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(resumeData)
+                });
+
+                const result = await response.json();
+                showStatus('Resume saved successfully!', 'success');
+            } catch (err) {
+                showStatus('Error saving resume: ' + err.message, 'error');
+            }
+        }
+
+        function downloadResume() {
+            const element = document.getElementById('resumePreview');
+            const opt = {
+                margin: 10,
+                filename: 'resume.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        async function subscribe() {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                showStatus('Please enter your email first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/subscribe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: localStorage.getItem('userId'), email })
+                });
+
+                const { sessionId } = await response.json();
+                const stripe = Stripe('pk_test_123456789'); // Use your publishable key
+                await stripe.redirectToCheckout({ sessionId });
+            } catch (err) {
+                showStatus('Error starting subscription: ' + err.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status-message status-' + type;
+            setTimeout(() => statusDiv.textContent = '', 5000);
+        }
+    </script>
+</body>
+</html>
